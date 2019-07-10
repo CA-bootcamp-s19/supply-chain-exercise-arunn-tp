@@ -12,10 +12,12 @@ contract SupplyChain {
   address owner;
 
   /* Add a variable called skuCount to track the most recent sku # */
+  uint256 skuCount;
 
   /* Add a line that creates a public mapping that maps the SKU (a number) to an Item.
      Call this mappings items
   */
+  mapping(uint=>Item)items;
 
   /* Add a line that creates an enum called State. This should have 4 states
     ForSale
@@ -24,6 +26,9 @@ contract SupplyChain {
     Received
     (declaring them in this order is important for testing)
   */
+  enum State{
+    ForSale, Sold, Shipped, Received
+  }
 
   /* Create a struct named Item.
     Here, add a name, sku, price, state, seller, and buyer
@@ -31,12 +36,26 @@ contract SupplyChain {
     if you need help you can ask around :)
     Be sure to add "payable" to addresses that will be handling value transfer
   */
+  struct Item{
+    string name;
+    uint256 sku;
+    uint256 price;
+    uint256 state;
+    address payable seller;
+    address payable buyer;
+  }
 
   /* Create 4 events with the same name as each possible State (see above)
     Prefix each event with "Log" for clarity, so the forSale event will be called "LogForSale"
     Each event should accept one argument, the sku */
+    event LogForSale(uint256 sku);
+    event LogSold(uint256 sku);
+    event LogShipped(uint256 sku);
+    event LogReceived(uint256 sku);
 
 /* Create a modifer that checks if the msg.sender is the owner of the contract */
+
+  modifier isOwner(){require(msg.sender == owner); _;}
 
   modifier verifyCaller (address _address) { require (msg.sender == _address); _;}
 
@@ -56,20 +75,22 @@ contract SupplyChain {
    so checking that Item.State == ForSale is not sufficient to check that an Item is for sale.
    Hint: What item properties will be non-zero when an Item has been added?
    */
-  modifier forSale
-  modifier sold
-  modifier shipped
-  modifier received
+  modifier forSale (uint256 sku){require(items[sku].state ==  uint256(State.ForSale)); _;}
+  modifier sold(uint256 sku){require(items[sku].state == uint256(State.Sold)); _;}
+  modifier shipped(uint256 sku){require(items[sku].state == uint256(State.Shipped));_;}
+  modifier received(uint256 sku){require(items[sku].state == uint256(State.Received)); _;}
 
 
   constructor() public {
     /* Here, set the owner as the person who instantiated the contract
        and set your skuCount to 0. */
+       owner = msg.sender;
+       skuCount = 0;
   }
 
   function addItem(string memory _name, uint _price) public returns(bool){
     emit LogForSale(skuCount);
-    items[skuCount] = Item({name: _name, sku: skuCount, price: _price, state: State.ForSale, seller: msg.sender, buyer: address(0)});
+    items[skuCount] = Item({name: _name, sku: skuCount, price: _price, state: uint256(State.ForSale), seller: msg.sender, buyer: address(0)});
     skuCount = skuCount + 1;
     return true;
   }
@@ -82,19 +103,38 @@ contract SupplyChain {
 
   function buyItem(uint sku)
     public
-  {}
+    payable
+    forSale(sku)
+    paidEnough(items[sku].price)
+    checkValue(sku)
+  {
+    (items[sku].seller).transfer(items[sku].price);
+    items[sku].buyer = msg.sender;
+    items[sku].state = uint256(State.Sold);
+    emit LogSold(sku);
+  }
 
   /* Add 2 modifiers to check if the item is sold already, and that the person calling this function
   is the seller. Change the state of the item to shipped. Remember to call the event associated with this function!*/
   function shipItem(uint sku)
     public
-  {}
+    verifyCaller(items[sku].seller)
+    sold(sku)
+  {
+    items[sku].state == uint(State.Shipped);
+    emit LogShipped(sku);
+  }
 
   /* Add 2 modifiers to check if the item is shipped already, and that the person calling this function
   is the buyer. Change the state of the item to received. Remember to call the event associated with this function!*/
   function receiveItem(uint sku)
+    verifyCaller(items[sku].buyer)
+    shipped(sku)
     public
-  {}
+  {
+    items[sku].state == uint256(State.Received);
+    emit LogReceived(sku);
+  }
 
   /* We have these functions completed so we can run tests, just ignore it :) */
   function fetchItem(uint _sku) public view returns (string memory name, uint sku, uint price, uint state, address seller, address buyer) {
