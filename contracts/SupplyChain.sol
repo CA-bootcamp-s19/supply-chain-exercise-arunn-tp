@@ -77,7 +77,7 @@ contract SupplyChain {
    */
   modifier forSale (uint256 sku){require(items[sku].state ==  uint256(State.ForSale)); _;}
   modifier sold(uint256 sku){require(items[sku].state == uint256(State.Sold)); _;}
-  modifier shipped(uint256 sku){require(items[sku].state == uint256(State.Shipped));_;}
+  modifier shipped(uint256 sku){require(items[sku].state == uint256(State.Shipped)); _;}
   modifier received(uint256 sku){require(items[sku].state == uint256(State.Received)); _;}
 
 
@@ -121,7 +121,7 @@ contract SupplyChain {
     verifyCaller(items[sku].seller)
     sold(sku)
   {
-    items[sku].state == uint(State.Shipped);
+    items[sku].state = uint256(State.Shipped);
     emit LogShipped(sku);
   }
 
@@ -132,7 +132,7 @@ contract SupplyChain {
     shipped(sku)
     public
   {
-    items[sku].state == uint256(State.Received);
+    items[sku].state = uint256(State.Received);
     emit LogReceived(sku);
   }
 
